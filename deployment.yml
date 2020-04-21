@@ -1,8 +1,9 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nexus
-  namespace: devops-tools
+#  namespace: devops-tools
 spec:
   replicas: 1
   selector:
@@ -16,6 +17,8 @@ spec:
       containers:
         - name: nexus
           image: sonatype/nexus3:latest
+          securityContext:
+            runAsUser: 0
           resources:
             limits:
               memory: "4Gi"
@@ -27,7 +30,24 @@ spec:
             - containerPort: 8081
           volumeMounts:
             - name: nexus-data
-              mountPath: /home/rsacal/kube/nexus/data
+              mountPath: "/nexus-data"
       volumes:
         - name: nexus-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: nexus-claim
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-server
+  labels:
+    run: nexus-service
+spec:
+  type: NodePort
+  ports:
+    - port: 8081
+      targetPort: 8081
+      nodePort: 30081
+  selector:
+    app: nexus-server
